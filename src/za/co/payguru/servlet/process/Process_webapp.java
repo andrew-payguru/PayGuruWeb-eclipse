@@ -7394,82 +7394,7 @@ public class Process_webapp {
 				double curBal = 0;
 
 				
-//				if(walletType.equals(ClientProduct.WALLET_TYPE_EXTERNAL)) {
-//					
-//					String extWalletInterface = CompanyParamDao.getCompParamValue(connection, company.getCompId(), "extwalletbalanceinterface");
-//					String pubKeyDir = ParamDao.getParam("extgatewaypubkeydir",connection);
-//					String payGateWayPubKey = FileUtil.readFromFile(pubKeyDir+"/"+company.getCompId()+"_1_pub.txt");
-//					String payGateWayClientID = CompanyParamDao.getCompParamValue(connection, compid, "extpaymentgatewayclientid");
-//					String payGateWayApiKey = CompanyParamDao.getCompParamValue(connection, compid, "extpaymentgatewayapikey");
-//					
-//					for(int i=0;i<compClientWallets.size();i++) {
-//						ClientProduct compClientWallet = compClientWallets.get(i);
-//						ClientProductRef clientProdRef = ClientProductRefDao.loadClientProductRef(connection, client.getClientid(), company.getCompId(), compClientWallet.getProdId(), compClientWallet.getProdRef());
-//						ClientCompanyBalance cliCompBal = ClientCompanyBalanceDao.loadClientCompanyBalance(connection, client.getClientid(), company.getCompId(), Util.parseInt(compClientWallet.getProdRef(),0), compClientWallet.getProdId());
-//
-//						System.out.println("CHECKING PROD REF:");
-//						if(clientProdRef.getCompid()==0||clientProdRef.getProdid()==0||clientProdRef.getClientid()==0) 
-//							continue;
-//						
-//						System.out.println("CHECKING EXT REF NO:");
-//						System.out.println(clientProdRef.toJSON().toString());
-//						String extWalletRef = clientProdRef.getExtref1();
-//						if(extWalletRef.isEmpty())
-//							continue;
-//						System.out.println(extWalletRef);
-//						
-//						System.out.println("EXT WALLET INTERFACE: " + extWalletInterface);
-//						if(extWalletInterface.equals("imali")) {
-//
-//
-//							try {
-//								String extUrl = ParamDao.getParam("extwalletbalanceurl_"+extWalletInterface,connection);
-//
-//								String payGatewayEncKey= SecurityUtil.encryptRSA_EC_PKCS1(payGateWayApiKey, payGateWayPubKey);
-//								HashMap<String, String> reqHeaders = new HashMap<String, String>();
-//								reqHeaders.put("Authorization", "Bearer " + payGatewayEncKey);
-//								reqHeaders.put("X-Client-ID", payGateWayClientID);
-//
-//								System.out.println("EXTREF: " + extWalletRef);
-//								System.out.println(extUrl+"?client_account_number="+extWalletRef);
-//								HTTPUrlConnectionClient urlClient = new HTTPUrlConnectionClient(extUrl,"?client_account_number="+extWalletRef);
-//								urlClient.setHttpMethod(HTTPUrlConnectionClient.HTTP_METHOD_GET);
-//								urlClient.setHeaders(reqHeaders);
-//								urlClient.setAccept(HTTPUrlConnectionClient.CONTENT_TYPE_JSON);
-//								urlClient.sendUrlRequest();
-//
-//								String response = urlClient.respMessage;
-//								int respCode = urlClient.respStatusCode;
-//
-//								System.out.println(response);
-//								if(respCode!=200) {
-//									continue;
-//								}
-//								JSONObject jsonResp = new JSONObject(response);
-//
-//								if(jsonResp==null||jsonResp.has("balance")==false) {
-//									continue;
-//								}
-//
-//								curBal = jsonResp.getDouble("balance");
-//
-//							}catch (Exception e) {
-//								System.out.println("Error Making Ext Connection: " + e.toString());
-//								continue;
-//							}
-//							String tranRef2 = "";
-//
-//							System.out.println("CURR BAL: " + curBal);
-//							cliCompBal.setBalance(curBal);
-//							
-//							ClientCompanyBalanceDao.updateClientCompanyBalance(connection, cliCompBal);
-//
-//						}
-//						//end-imali
-//
-//						
-//					}
-//				}
+
 				
 				ArrayList<ClientCompanyBalance> compClientWalletBalances = ClientCompanyBalanceDao.getClientCompanyBalances(connection, client.getClientid(), company.getCompId());
 				
@@ -8003,6 +7928,7 @@ public class Process_webapp {
 	}
 	public static StringBuilder searchClientWalletSubAccsLikeProdData(HttpServletRequest req, HttpServletResponse resp, JSONObject jsonBody, Connection connection, String logdir, String defaultLang) {
 		StringBuilder sb = new StringBuilder();
+		String errCode = "";
 		String errMsg = "";
 		try {
 			for(int z=0;z<1;z++) {
@@ -8010,12 +7936,40 @@ public class Process_webapp {
 				String ref1 = JSONHelper.getValue(jsonBody, "ref1");
 				String ref2 = JSONHelper.getValue(jsonBody, "ref2");
 				int prodreftype = JSONHelper.getIntValue(jsonBody, "prodreftype");
+				String token = JSONHelper.getValue(jsonBody, "token");
+				
 			
 				Company company = CompanyDao.getCompany(compid,connection);
 				if(company.getCompId()==0) {
-					errMsg = "9001";
+					errMsg = "Error Loading Company";
+					errCode = "9001";
 					break;
 				}
+				
+				CompanyUserSession companyUserSession = CompanyUserSessionDao.loadUserSessionByToken(connection, compid, token);
+				if(companyUserSession==null||companyUserSession.getUserid()<=0) {
+					errMsg = "Error loading Client Session";
+					errCode = "9003";
+					break;
+				}
+				long tokenExpire = companyUserSession.getExpiretimemillis();
+				long currentTime = System.currentTimeMillis();
+				System.out.println("tokenExpire: "+tokenExpire);
+				System.out.println("currentTime: "+currentTime);
+ 
+				if (tokenExpire < currentTime) {
+					errMsg = "Token has expired";
+					errCode = "9003";
+					break;
+				} 
+				
+				CompanyUser compUser = CompanyUserDao.loadCompanyUser(company.getCompId(), companyUserSession.getUserid(), connection);
+				if(compUser==null||compUser.getUserId()<=0) {
+					errMsg = "User Doesnt Exist";
+					errCode = "9003";
+					break;
+				}
+				
 				
 				if(ref2.isEmpty()) {
 					errMsg = "9002";
@@ -8040,12 +7994,14 @@ public class Process_webapp {
 				
 			}
 		}catch (Exception e) {
-			System.out.println("Server Error Process: searchClientWalletSubAcc -> " + e.toString());
+			System.out.println("Server Error Process: searchClientWalletSubAccsLikeProdData -> " + e.toString());
 			errMsg = "Server Error";
+			errCode = "9200";
 		}
-		if(errMsg.length()>0) {
+		if(errCode.length()>0) {
+			System.out.println(errMsg);
 			resp.setStatus(HTTPUtil.HTTP_INTERNAL_SERVLET_ERROR);
-			sb = JSONHelper.getErrorJson(errMsg);
+			sb = JSONHelper.getErrorJson(errCode);
 		}
 		return sb;
 	}
