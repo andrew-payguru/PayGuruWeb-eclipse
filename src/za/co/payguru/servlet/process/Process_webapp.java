@@ -8106,6 +8106,7 @@ public class Process_webapp {
 		}
 		return sb;
 	}
+	
 	public static StringBuilder getWalletDashboardData(HttpServletRequest req, HttpServletResponse resp, JSONObject jsonBody, Connection connection, String logdir, String defaultLang, String ipAddress) {
 		StringBuilder sb = new StringBuilder();
 		String errCode = "";
@@ -8171,5 +8172,117 @@ public class Process_webapp {
 		return sb;
 	}
 
+	public static StringBuilder getSalesTableData(HttpServletRequest req, HttpServletResponse resp, JSONObject jsonBody, Connection connection, String logdir, String defaultLang, String ipAddress) {
+		StringBuilder sb = new StringBuilder();
+		String errCode = "";
+		String errMsg = "";
+		try {
+			for(int z=0;z<1;z++) {
+				String fromDate = JSONHelper.getValue(jsonBody, "fromDate");
+				String toDate = JSONHelper.getValue(jsonBody, "toDate");
+				int compid = JSONHelper.getIntValue(jsonBody, "compid");
+				String compName = JSONHelper.getValue(jsonBody, "compname");
+				String token = JSONHelper.getValue(jsonBody, "token");
+				String username = JSONHelper.getValue(jsonBody, "username");
+				
+				Company company = CompanyDao.getCompany(compid, connection);
+				if(company==null||company.getCompId()==0) {
+					errMsg = "Error loading client";
+					errCode = "9001";
+					break;
+				}
+				
+ 
+				CompanyUserSession companyUserSession = CompanyUserSessionDao.loadUserSessionByToken(connection, compid, token);
+				if(companyUserSession==null||companyUserSession.getUserid()<=0) {
+					errMsg = "Error loading Client Session";
+					errCode = "9003";
+					break;
+				}
+				long tokenExpire = companyUserSession.getExpiretimemillis();
+				long currentTime = System.currentTimeMillis();
+ 
+				if (tokenExpire < currentTime) {
+					errMsg = "Token has expired";
+					errCode = "9003";
+					break;
+				} 
+				
+				JSONArray salesData = ClientInvoiceDao.getClientInvoiceData(connection, toDate, username, compid, 5205);
+				
+				JSONObject json = new JSONObject();
+				json.put("status", "ok");
+				json.put("salesData", salesData);
+				sb.append(json);
+			}
+		}catch (Exception e) {
+			System.out.println("Server Error Process: getSalesTableData -> " + e.toString());
+			errMsg = "Server Error";
+			errCode = "9200";
+		}
+		if(errCode.length()>0) {
+			System.out.println(errMsg);
+			resp.setStatus(HTTPUtil.HTTP_INTERNAL_SERVLET_ERROR);
+			sb = JSONHelper.getErrorJson(errCode);
+		}
+		return sb;
+	}
+	
+	
+	public static StringBuilder getRechargesTableData(HttpServletRequest req, HttpServletResponse resp, JSONObject jsonBody, Connection connection, String logdir, String defaultLang, String ipAddress) {
+		StringBuilder sb = new StringBuilder();
+		String errCode = "";
+		String errMsg = "";
+		try {
+			for(int z=0;z<1;z++) {
+				String fromDate = JSONHelper.getValue(jsonBody, "fromDate");
+				String toDate = JSONHelper.getValue(jsonBody, "toDate");
+				int compid = JSONHelper.getIntValue(jsonBody, "compid");
+				String compName = JSONHelper.getValue(jsonBody, "compname");
+				String token = JSONHelper.getValue(jsonBody, "token");
+				String username = JSONHelper.getValue(jsonBody, "username");
+				
+				Company company = CompanyDao.getCompany(compid, connection);
+				if(company==null||company.getCompId()==0) {
+					errMsg = "Error loading client";
+					errCode = "9001";
+					break;
+				}
+				
+ 
+				CompanyUserSession companyUserSession = CompanyUserSessionDao.loadUserSessionByToken(connection, compid, token);
+				if(companyUserSession==null||companyUserSession.getUserid()<=0) {
+					errMsg = "Error loading Client Session";
+					errCode = "9003";
+					break;
+				}
+				long tokenExpire = companyUserSession.getExpiretimemillis();
+				long currentTime = System.currentTimeMillis();
+ 
+				if (tokenExpire < currentTime) {
+					errMsg = "Token has expired";
+					errCode = "9003";
+					break;
+				} 
+				
+//				JSONArray rechargeData = ExtTranDAO;
+				
+				JSONObject json = new JSONObject();
+				json.put("status", "ok");
+//				json.put("rechargeData", rechargeData);
+				sb.append(json);
+			}
+		}catch (Exception e) {
+			System.out.println("Server Error Process: getRechargesTableData -> " + e.toString());
+			errMsg = "Server Error";
+			errCode = "9200";
+		}
+		if(errCode.length()>0) {
+			System.out.println(errMsg);
+			resp.setStatus(HTTPUtil.HTTP_INTERNAL_SERVLET_ERROR);
+			sb = JSONHelper.getErrorJson(errCode);
+		}
+		return sb;
+	}
 }
 

@@ -441,6 +441,10 @@ public class WebController extends HttpServlet{
 						sb = Process_webapp.loginCompanyUser(req,resp,jsonBody,connection,logdir,defaultLang,ipAddress);
 					else if(action.equals("getwalletdashboarddata"))
 						sb = Process_webapp.getWalletDashboardData(req,resp,jsonBody,connection,logdir,defaultLang,ipAddress);	
+					else if(action.equals("getsalestabledata"))
+						sb = Process_webapp.getSalesTableData(req,resp,jsonBody,connection,logdir,defaultLang,ipAddress);	
+					else if(action.equals("getrechargestabledata"))
+						sb = Process_webapp.getRechargesTableData(req,resp,jsonBody,connection,logdir,defaultLang,ipAddress);	
 					else {
 						sb = JSONHelper.getErrorJson("Unknown action!");
 						resp.setStatus(HTTPUtil.HTTP_BAD_REQUEST);
