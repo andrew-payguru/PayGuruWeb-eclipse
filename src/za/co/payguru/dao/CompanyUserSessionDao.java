@@ -59,10 +59,11 @@ public class CompanyUserSessionDao {
     public static CompanyUserSession loadUserSessionByToken(Connection connection, int compid, String token) {
     	CompanyUserSession userSession = new CompanyUserSession();
     	try(
-    		PreparedStatement statement = connection.prepareStatement("SELECT * FROM COMPANYUSERSESSIONS WHERE compid = ? AND token = ?");
+    		PreparedStatement statement = connection.prepareStatement("SELECT * FROM COMPANYUSERSESSIONS WHERE compid = ? AND token = ? and status = ?");
     	){
     		statement.setInt(1, compid);
     		statement.setString(2, token);
+    		statement.setInt(3, CompanyUserSession.STATUS_ACTIVE);
     		ResultSet rs = statement.executeQuery();
     		if(rs.next()) {
     			userSession.setCompid(rs.getInt("compid"));

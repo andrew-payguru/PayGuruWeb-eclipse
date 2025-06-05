@@ -4972,16 +4972,16 @@ public class Process_webapp {
 						errMsg = "Client Does Not Have a Registered Email! Please Use Sms Option!";
 						break;
 					}
-					EmailQueue emailqueue = new EmailQueue();
-					emailqueue.setEmailaddress(client.getClientemail());
-					emailqueue.setEmailmessage(messageSender + " OTP: " + otp);
-					emailqueue.setEmailpayref(""+company.getCompId());
-					emailqueue = EmailQueueDao.addEmailQueue(connection, emailqueue);
-					if(emailqueue.getEmailid()<=0) {
-						errMsg = "Error creating email!";
-						break;
-					}
-					clientOtp.setOtpsendref(""+emailqueue.getEmailid());
+//					EmailQueue emailqueue = new EmailQueue();
+//					emailqueue.setEmailaddress(client.getClientemail());
+//					emailqueue.setEmailmessage(messageSender + " OTP: " + otp);
+//					emailqueue.setEmailpayref(""+company.getCompId());
+//					emailqueue = EmailQueueDao.addEmailQueue(connection, emailqueue);
+//					if(emailqueue.getEmailid()<=0) {
+//						errMsg = "Error creating email!";
+//						break;
+//					}
+//					clientOtp.setOtpsendref(""+emailqueue.getEmailid());
 				}
 
 				clientOtp = ClientOtpDao.addClientOtp(connection, clientOtp);
@@ -7818,6 +7818,7 @@ public class Process_webapp {
 			for(int z=0;z<1;z++) {
 				int compid = JSONHelper.getIntValue(jsonBody, "compid");
 				String invno = JSONHelper.getValue(jsonBody, "invno");
+				
 				
 			
 				Company company = CompanyDao.getCompany(compid,connection);

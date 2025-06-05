@@ -8,6 +8,9 @@ import org.json.JSONObject;
 import za.co.payguru.util.DateUtil;
 
 public class EmailQueue {
+	
+	//CAHNGE TO MATCH TABLE
+	
 		public static final String ACTIVE = "1";
 		public static final String INACTIVE = "0";
 		
@@ -43,19 +46,6 @@ public class EmailQueue {
         this.emailactive = ACTIVE;  
     }
 
-    public EmailQueue(long emailid, String emailaddress, Date emaildate, Time emailtime, String emailmessage, String emailstatus, Date emailstatusdate, Time emailstatustime, String emailsendref, String emailpayref, String emailactive) {
-        this.emailid = emailid;
-        this.emailaddress = emailaddress;
-        this.emaildate = emaildate;
-        this.emailtime = emailtime;
-        this.emailmessage = emailmessage;
-        this.emailstatus = emailstatus;
-        this.emailstatusdate = emailstatusdate;
-        this.emailstatustime = emailstatustime;
-        this.emailsendref = emailsendref;
-        this.emailpayref = emailpayref;
-        this.emailactive = emailactive;
-    }
 
 
     public long getEmailid() {
