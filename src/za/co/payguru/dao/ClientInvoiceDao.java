@@ -13,6 +13,7 @@ import org.json.JSONObject;
 import za.co.payguru.model.ClientInvoice;
 import za.co.payguru.model.ClientInvoiceData;
 import za.co.payguru.model.ClientPaymentRef;
+import za.co.payguru.model.ClientProductRef;
 import za.co.payguru.model.CompanyProduct;
 import za.co.payguru.util.DateUtil;
 import za.co.payguru.util.Util;
@@ -1283,31 +1284,24 @@ public class ClientInvoiceDao {
 		return jsonObject;
 	}
 
-	public static JSONArray getClientInvoiceData(Connection connection, String statusDate, String statusTime, int compId, int prodId) {
-		JSONArray jsonArray = new JSONArray();
+	public static ArrayList<ClientInvoice> getClientInvoiceSalesHistory(Connection connection, String toDate, String fromDate, int compId, int prodId) {
+		ArrayList<ClientInvoice> clientInvoices = new ArrayList<>();
 
 		try (PreparedStatement statement = connection.prepareStatement(
-				"SELECT clientinvoices.statusdate, clientinvoices.statustime, clientinvoices.invno, clientinvoices.payamt, clients.contemail, clientproducts.proddata AS walletdesc FROM clientinvoices JOIN clients ON clientinvoices.clientid = clients.clientid JOIN clientproducts ON clientinvoices.clientid = clientproducts.clientid AND clientinvoices.compid = clientproducts.compid AND clientinvoices.prodid = clientproducts.prodid " + "WHERE clientinvoices.statusdate = ? AND clientinvoices.statustime = ? AND clientinvoices.compid = ? AND clientinvoices.prodid = ? AND clientinvoices.status = " + ClientInvoice.INVOICE_PAID + " AND clientinvoices.active = " + ClientInvoice.INVOICE_ACTIVE)) {
-			statement.setString(1, statusDate);
-			statement.setString(2, statusTime);
+				"")) {
+			statement.setString(1, toDate);
+			statement.setString(2, fromDate);
 			statement.setInt(3, compId);
 			statement.setInt(4, prodId);
 			ResultSet rs = statement.executeQuery();
 			while (rs.next()) {
-				JSONObject obj = new JSONObject();
-				obj.put("statusdate", rs.getString("statusdate"));
-				obj.put("statustime", rs.getString("statustime"));
-				obj.put("invno", rs.getString("invno"));
-				obj.put("payamt", rs.getBigDecimal("payamt"));
-				obj.put("contemail", rs.getString("contemail"));
-				obj.put("walletdesc", rs.getString("walletdesc"));
-				jsonArray.put(obj);
+				//put in relevant object
 			}
 			rs.close();
 		} catch (Exception e) {
 			System.out.println();
 		}
-		return jsonArray;
+		return clientInvoices;
 	}
 
 	// JSON HELPER METHODS
@@ -1331,6 +1325,18 @@ public class ClientInvoiceDao {
 		}
 		sb.append("]");
 		return sb;
+	}
+	
+	public static JSONArray toJSONArray(ArrayList<ClientInvoice> clientInvoices) {
+		JSONArray jsonArray = new JSONArray();
+		try {
+			for(int i=0;i<clientInvoices.size();i++) {
+				jsonArray.put(clientInvoices.get(i).toJSON());
+			}
+		}catch (Exception e) {
+			System.out.println("Error creating json: " + e.toString()); 
+		}
+		return jsonArray;
 	}
 
 }

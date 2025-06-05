@@ -59,10 +59,11 @@ public class CompanyUserSessionDao {
     public static CompanyUserSession loadUserSessionByToken(Connection connection, int compid, String token) {
     	CompanyUserSession userSession = new CompanyUserSession();
     	try(
-    		PreparedStatement statement = connection.prepareStatement("SELECT * FROM COMPANYUSERSESSIONS WHERE compid = ? AND token = ?");
+    		PreparedStatement statement = connection.prepareStatement("SELECT * FROM COMPANYUSERSESSIONS WHERE compid = ? AND token = ? and status = ?");
     	){
     		statement.setInt(1, compid);
     		statement.setString(2, token);
+    		statement.setInt(3, CompanyUserSession.STATUS_ACTIVE);
     		ResultSet rs = statement.executeQuery();
     		if(rs.next()) {
     			userSession.setCompid(rs.getInt("compid"));
@@ -93,6 +94,25 @@ public class CompanyUserSessionDao {
     		statement.setTime(3, DateUtil.getCurrentHHMMSSTime());
     		statement.setInt(4, compid);
     		statement.setInt(5, userid);
+    		statement.setInt(6, CompanyUserSession.STATUS_ACTIVE);
+    		
+    		updated = (statement.executeUpdate() > 0);
+    	}catch (Exception e) {
+    		System.out.println("Error updating table COMPANYUSERSESSIONS: " + e.toString());
+		}
+    	return updated;
+    }
+    
+    public static boolean deactivateUserSessionsToken(Connection connection, int compid, String token) {
+    	boolean updated = false;
+    	try(
+    		PreparedStatement statement = connection.prepareStatement("UPDATE COMPANYUSERSESSIONS SET status = ?, statusdate = ?, statustime = ? WHERE compid = ? AND token = ? AND status = ?");
+    	){
+    		statement.setInt(1,	CompanyUserSession.STATUS_INACTIVE);
+    		statement.setDate(2, DateUtil.getCurrentCCYYMMDDDate());
+    		statement.setTime(3, DateUtil.getCurrentHHMMSSTime());
+    		statement.setInt(4, compid);
+    		statement.setString(5, token);
     		statement.setInt(6, CompanyUserSession.STATUS_ACTIVE);
     		
     		updated = (statement.executeUpdate() > 0);
