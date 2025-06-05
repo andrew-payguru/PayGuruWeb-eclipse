@@ -8148,16 +8148,16 @@ public class Process_webapp {
 				int totalClients = CompanyClientDao.totalClientsInComp(connection, compid);
 				SimpleDateFormat formatter = new SimpleDateFormat("yyyy/MM/dd");
 				int totalTransactions = ClientInvoiceDao.getClientInvoiceQuantity(connection, compid, formatter.format(DateUtil.getStartOfMonth()), formatter.format(DateUtil.getCurrentCCYYMMDDDate()), 0);
-				double totalDept = ClientCompanyBalanceDao.getTotalPositiveBalances(connection, compid, 5205);
+				double totalDebt = ClientCompanyBalanceDao.getTotalPositiveBalances(connection, compid, 5205);
  
 				double totalOwing = ClientCompanyBalanceDao.getTotalNegativeBalances(connection, compid, 5205);
 				
 				JSONObject json = new JSONObject();
 				json.put("status", "ok");
-				json.put("totalClients", totalClients);
-				json.put("totalTransactions", totalTransactions);
-				json.put("totalDept", totalDept);
-				json.put("totalOwing", totalOwing);
+				json.put("totalclients", totalClients);
+				json.put("totaltransactions", totalTransactions);
+				json.put("totaldebt", totalDebt);
+				json.put("totalowing", totalOwing);
 				sb.append(json);
 			}
 		}catch (Exception e) {
@@ -8179,12 +8179,13 @@ public class Process_webapp {
 		String errMsg = "";
 		try {
 			for(int z=0;z<1;z++) {
-				String fromDate = JSONHelper.getValue(jsonBody, "fromDate");
-				String toDate = JSONHelper.getValue(jsonBody, "toDate");
+				String fromDate = JSONHelper.getValue(jsonBody, "fromdate");
+				String toDate = JSONHelper.getValue(jsonBody, "todate");
 				int compid = JSONHelper.getIntValue(jsonBody, "compid");
 				String compName = JSONHelper.getValue(jsonBody, "compname");
 				String token = JSONHelper.getValue(jsonBody, "token");
 				String username = JSONHelper.getValue(jsonBody, "username");
+				int prodid = JSONHelper.getIntValue(jsonBody, "prodid");
 				
 				Company company = CompanyDao.getCompany(compid, connection);
 				if(company==null||company.getCompId()==0) {
@@ -8193,6 +8194,14 @@ public class Process_webapp {
 					break;
 				}
 				
+				if(prodid==0) {
+					prodid = Util.parseInt(CompanyParamDao.getCompParamValue(connection, compid, "defaultwalletproduct"), 0);
+				}
+				if(prodid<=0) {
+					errMsg = "Invalid Prod ID";
+					errCode = "9004";
+					break;
+				}
  
 				CompanyUserSession companyUserSession = CompanyUserSessionDao.loadUserSessionByToken(connection, compid, token);
 				if(companyUserSession==null||companyUserSession.getUserid()<=0) {
@@ -8209,11 +8218,13 @@ public class Process_webapp {
 					break;
 				} 
 				
-				JSONArray salesData = ClientInvoiceDao.getClientInvoiceData(connection, toDate, username, compid, 5205);
+				ArrayList<ClientInvoice> clientInvoices = ClientInvoiceDao.getClientInvoiceSalesHistory(connection, toDate, fromDate, compid, compid);
+				JSONArray jsonClientInvoices = ClientInvoiceDao.toJSONArray(clientInvoices);
+
 				
 				JSONObject json = new JSONObject();
 				json.put("status", "ok");
-				json.put("salesData", salesData);
+				json.put("clientinvoices", jsonClientInvoices);
 				sb.append(json);
 			}
 		}catch (Exception e) {
@@ -8236,8 +8247,8 @@ public class Process_webapp {
 		String errMsg = "";
 		try {
 			for(int z=0;z<1;z++) {
-				String fromDate = JSONHelper.getValue(jsonBody, "fromDate");
-				String toDate = JSONHelper.getValue(jsonBody, "toDate");
+				String fromDate = JSONHelper.getValue(jsonBody, "fromdate");
+				String toDate = JSONHelper.getValue(jsonBody, "todate");
 				int compid = JSONHelper.getIntValue(jsonBody, "compid");
 				String compName = JSONHelper.getValue(jsonBody, "compname");
 				String token = JSONHelper.getValue(jsonBody, "token");
@@ -8275,6 +8286,90 @@ public class Process_webapp {
 			}
 		}catch (Exception e) {
 			System.out.println("Server Error Process: getRechargesTableData -> " + e.toString());
+			errMsg = "Server Error";
+			errCode = "9200";
+		}
+		if(errCode.length()>0) {
+			System.out.println(errMsg);
+			resp.setStatus(HTTPUtil.HTTP_INTERNAL_SERVLET_ERROR);
+			sb = JSONHelper.getErrorJson(errCode);
+		}
+		return sb;
+	}
+	
+	public static StringBuilder logoutCommpanyUser(HttpServletRequest req, HttpServletResponse resp, JSONObject jsonBody, Connection connection, String logdir, String defaultLang, String ipAddress) {
+		StringBuilder sb = new StringBuilder();
+		String errCode = "";
+		String errMsg = "";
+		try {
+			for(int z=0;z<1;z++) {
+				int compid = JSONHelper.getIntValue(jsonBody, "compid");
+				String token = JSONHelper.getValue(jsonBody, "token");
+				
+				Company company = CompanyDao.getCompany(compid, connection);
+				if(company==null||company.getCompId()==0) {
+					errMsg = "Error loading client";
+					errCode = "9001";
+					break;
+				}
+				
+				String compWebRef = company.getCompWebRef();
+				
+				CompanyUserSessionDao.deactivateUserSessionsToken(connection, compid, token);
+				
+				JSONObject json = new JSONObject();
+				json.put("status", "ok");
+				json.put("compwebref", compWebRef);
+ 				sb.append(json);
+				
+			}
+		}catch (Exception e) {
+			System.out.println("Server Error Process: logoutCommpanyUser -> " + e.toString());
+			errMsg = "Server Error";
+			errCode = "9200";
+		}
+		if(errCode.length()>0) {
+			System.out.println(errMsg);
+			resp.setStatus(HTTPUtil.HTTP_INTERNAL_SERVLET_ERROR);
+			sb = JSONHelper.getErrorJson(errCode);
+		}
+		return sb;
+	}
+	
+	public static StringBuilder checkWebToken(HttpServletRequest req, HttpServletResponse resp, JSONObject jsonBody, Connection connection, String logdir, String defaultLang, String ipAddress) {
+		StringBuilder sb = new StringBuilder();
+		String errCode = "";
+		String errMsg = "";
+		try {
+			for(int z=0;z<1;z++) {
+				int compid = JSONHelper.getIntValue(jsonBody, "compid");
+				String token = JSONHelper.getValue(jsonBody, "token");
+				
+				Company company = CompanyDao.getCompany(compid, connection);
+				if(company==null||company.getCompId()==0) {
+					errMsg = "Error loading client";
+					errCode = "9001";
+					break;
+				}
+				
+				String compWebRef = company.getCompWebRef();
+				
+				CompanyUserSession companyUserSession = CompanyUserSessionDao.loadUserSessionByToken(connection, compid, token);
+				
+				long tokenExpire = companyUserSession.getExpiretimemillis();
+				long currentTime = System.currentTimeMillis();
+ 				
+				boolean active = (companyUserSession.getStatus() == CompanyUserSession.STATUS_ACTIVE ? true : false) && (tokenExpire > currentTime);
+						
+				JSONObject json = new JSONObject();
+				json.put("status", "ok");
+				json.put("tokenactive", active);
+				json.put("compwebref", compWebRef);
+ 				sb.append(json);
+				
+			}
+		}catch (Exception e) {
+			System.out.println("Server Error Process: checkWebToken -> " + e.toString());
 			errMsg = "Server Error";
 			errCode = "9200";
 		}

@@ -102,4 +102,23 @@ public class CompanyUserSessionDao {
 		}
     	return updated;
     }
+    
+    public static boolean deactivateUserSessionsToken(Connection connection, int compid, String token) {
+    	boolean updated = false;
+    	try(
+    		PreparedStatement statement = connection.prepareStatement("UPDATE COMPANYUSERSESSIONS SET status = ?, statusdate = ?, statustime = ? WHERE compid = ? AND token = ? AND status = ?");
+    	){
+    		statement.setInt(1,	CompanyUserSession.STATUS_INACTIVE);
+    		statement.setDate(2, DateUtil.getCurrentCCYYMMDDDate());
+    		statement.setTime(3, DateUtil.getCurrentHHMMSSTime());
+    		statement.setInt(4, compid);
+    		statement.setString(5, token);
+    		statement.setInt(6, CompanyUserSession.STATUS_ACTIVE);
+    		
+    		updated = (statement.executeUpdate() > 0);
+    	}catch (Exception e) {
+    		System.out.println("Error updating table COMPANYUSERSESSIONS: " + e.toString());
+		}
+    	return updated;
+    }
 }
